@@ -1,0 +1,123 @@
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import javax.imageio.ImageIO;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
+public class ImageDownload
+{   
+    public static void main( String[] args )
+    {
+        JFrame frame = new JFrame();
+        BufferedImage image = null;  
+
+        //image.jpg is default file destination name
+        File imageFile = new File("image.jpg");     
+
+        //prompt user to enter Reddit URL
+        String webPage = JOptionPane.showInputDialog("Enter Reddit URL:");
+
+        //StringBuilder object to store web page source 
+        StringBuilder pageSource = new StringBuilder();
+        
+        //StringBuilder object to store URL of Reddit image
+        StringBuilder imageUrl = new StringBuilder();
+
+        //BufferedReader object to read from web page source
+        BufferedReader buffer = null;
+        
+        boolean found = false;
+        
+        try 
+        {
+            //new URL object initialised to user's input
+            URL redditURL = new URL(webPage);
+            //initialise buffer to open page source of given URL
+            buffer = new BufferedReader(new InputStreamReader(redditURL.openStream()));
+            
+            int byteRead;
+            
+            while ((byteRead = buffer.read()) != -1) 
+            {
+                //start appending page source characters to buffer
+                pageSource.append((char) byteRead);
+
+                //in sub-Reddit source file,
+                //alien images can be found after the string "'header-img' src="
+                //so search for this string while it still hasn't been found
+                //'h' is the last character of the search string so that it can 
+                //be appended as the first character in imageURL
+                if(pageSource.toString().contains("'header-img' src=\"h") && !found) 
+                {
+                    System.out.println("Found Reddit image URL");
+                    found = true;
+                }
+                
+                //append the URL characters to imageURL
+                //break out of the while loop when the end of the URL (second quotation) is found
+                if (found) 
+                {
+                    if ((char) byteRead == '\"')
+                        break;
+                    else
+                        imageUrl.append((char) byteRead);
+                }
+            }
+
+            //close the buffer
+            buffer.close();
+            
+            //if image URL isn't found show dialog box and exit
+            if (!found)
+            {
+                JOptionPane.showMessageDialog(frame, "Reddit image not found.");
+                System.exit(1);
+            }
+        }
+
+        catch (IOException e1) 
+        {
+            JOptionPane.showMessageDialog(frame, "Invalid URL");
+            System.exit(1);
+        } 
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setSelectedFile(imageFile);
+
+        //put "image.jpg" in selected directory
+        if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) 
+        { 
+            imageFile = fileChooser.getSelectedFile();
+        }
+        else
+        {
+            System.out.println("Cancelled");
+            System.exit(1);
+        }
+        
+        try 
+        {   
+            //create new URL object initialised to imageURL 
+            URL url = new URL(imageUrl.toString());
+            
+            //read image
+            image = ImageIO.read(url);
+
+            //write image to file as .jpg
+            ImageIO.write(image, "jpg", imageFile);    
+
+            //confirmation message which shows path to image file
+            JOptionPane.showMessageDialog(frame, "Image saved to " + imageFile);
+        } 
+
+        catch (IOException e) 
+        {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+    }
+}
